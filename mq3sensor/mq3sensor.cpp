@@ -10,36 +10,58 @@ MQ3sensor::MQ3sensor(uint8_t analog_in)
 }
 
 /*
- * @brief   Calibrate sensor: current Rs set as R0
+ * @brief   Calibrate sensor in clean air.
+ *          As given in datasheet, Rs/R0 = 1 in clean area.
+ *          Based on: https://www.teachmemicro.com/mq-3-alcohol-sensor/ and
+ *          datasheet https://cdn.sparkfun.com/datasheets/Sensors/Biometric/MQ-3%20ver1.3%20-%20Manual.pdf
  * @param   None
  * @retval  Measured R0 value in Ohm
  */
 float MQ3sensor::calibrate()
 {
-    _r0 = readRs();
+    float rs = readRs();
+    _r0 = rs;
     return _r0;
 }
 
 /*
- * @brief   Measure and calculate alcohol concentration in ppm
+ * @brief   Measure and calculate alcohol concentration in air in ppm
+ *          https://cdn.sparkfun.com/datasheets/Sensors/Biometric/MQ-3%20ver1.3%20-%20Manual.pdf
  * @param   None
  * @retval  Alcohol concentration in ppm
  */
 float MQ3sensor::readAlcoholPpm()
 {
-    return (500.0 * readAlcoholMgL());
+    /* f(x) = 4.7360598103*x^(-1.1125227969) */
+    return (4.7 * pow(readRatio(), -1.11));
 }
 
 /*
- * @brief   Measure and calculate alcohol concentration in mg/L
+ * @brief   Measure and calculate alcohol concentration in air in mg/L.
  * @param   None
  * @retval  Alcohol concentration in mg/L
  */
 float MQ3sensor::readAlcoholMgL()
 {
-    float ratio = readRatio();
-    /* f(x) = 0.400292495*x^(-1.4369198088) */
-    return (0.4 * pow(ratio, -1.437));
+    return (readAlcoholPpm() / 500.0);
+}
+
+/*
+ * @brief   Measure and calculate blood alcohol concentration (BAC)
+ *          based on breath alcohol concentration (BrAC).
+ *          Calculation based on
+ *          https://www.lionlaboratories.com/testing-for-alcohol/the-lion-units-converter/
+ *          Used Blood:Breath Ratio 2000:1
+ * @param   None
+ * @retval  BAC in mg/ml (per mille)
+ */
+float MQ3sensor::readAlcoholBAC()
+{
+    /* 1 mg/L = 0.001 mg/ml
+       BAC:BrAC = 2000:1
+       BAC = (BrAC[mg/L] / 1000) * 2000
+    */
+    return (2.0 * readAlcoholMgL());
 }
 
 /*
@@ -80,7 +102,6 @@ void MQ3sensor::setRo(float r0)
 float MQ3sensor::readRs()
 {
     int adc_result = 0;
-    float result = 0.0;
     for (uint8_t i = 0u; i < MQ_SAMPLE_TIMES; i++)
     {
         adc_result += analogRead(_ain);

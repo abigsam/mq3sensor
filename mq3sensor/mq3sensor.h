@@ -11,6 +11,7 @@
 #define MQ_HEATING_TIME     (6000u)
 #define MQ_LOAD_RESISTANCE  ((float)1000.0)
 #define MQ_ARDUINO_ADC_MAX  (1024u)
+#define MQ_BAC_LIMIT        ((float) 0.20) /* Value for Ukraine */
 
 
 class MQ3sensor {
@@ -20,11 +21,12 @@ public:
     float calibrate();
     float readAlcoholPpm();
     float readAlcoholMgL();
+    float readAlcoholBAC();
     float readRatio();
     float getRo();
     void  setRo(float r0);
 
-private:
+// private:
     float readRs();
 
 private:

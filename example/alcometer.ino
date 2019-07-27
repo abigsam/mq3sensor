@@ -6,13 +6,16 @@
 //MQ-3
 #include <mq3sensor.h>
 
-#define PIN_MQ3  A1
+#define PIN_MQ3       (A1)
+#define DEFAULT_R0    ((float)18800.0)
 
 
 enum measure_type: uint8_t {
   MQ3_PPM = 0,
   MQ3_MGL,
-  MQ3_RATIO
+  MQ3_BAC_PROMILE,
+  MQ3_RATIO,
+  MQ3_RESISTANCE
 };
 
 void lcd_clear();
@@ -71,18 +74,19 @@ int read_LCD_buttons()
 
 void setup()
 {
-  lcd.begin(16, 2);              // start the library
+  lcd.begin(16, 2);   // start the library
   lcd.setCursor(0,0);
   lcd.print("For calib. press");
   lcd.setCursor(0,1);
   lcd.print("button <Select>");
   delay(3000u);
-  mq3n.calibrate();
+  //mq3n.calibrate();
+  mq3n.setRo(DEFAULT_R0);
 
   lcd_clear();
   lcd.setCursor(0,0);
   lcd.print("Alcohol:");
-  curr_mtype = MQ3_MGL;
+  curr_mtype = MQ3_RESISTANCE;//MQ3_BAC_PROMILE;
 }
 
 void loop()
@@ -100,11 +104,11 @@ void loop()
   }
 
   if (lcd_key == btnLEFT) {
-    if (curr_mtype == MQ3_PPM) curr_mtype = MQ3_RATIO;
+    if (curr_mtype == MQ3_PPM) curr_mtype = MQ3_RESISTANCE;
     else curr_mtype = (measure_type)((uint8_t)curr_mtype - 1);
   }
   if (lcd_key == btnRIGHT) {
-    if (curr_mtype == MQ3_RATIO) curr_mtype = MQ3_PPM;
+    if (curr_mtype == MQ3_RESISTANCE) curr_mtype = MQ3_PPM;
     else curr_mtype = (measure_type)((uint8_t)curr_mtype + 1);
   }
   if (lcd_key == btnLEFT || lcd_key == btnRIGHT) {
@@ -170,11 +174,23 @@ void mq3_print(measure_type mtype)
       lcd.setCursor(8,1);
       lcd.print("mg/L");
       break;
+
+    case MQ3_BAC_PROMILE:
+      lcd.print( mq3n.readAlcoholBAC() );
+      lcd.setCursor(8,1);
+      lcd.print("promile");
+      break;
     
     case MQ3_RATIO:
       lcd.print( mq3n.readRatio() );
       lcd.setCursor(8,1);
       lcd.print("[ratio]");
+      break;
+
+    case MQ3_RESISTANCE:
+      lcd.print( mq3n.readRs() );
+      lcd.setCursor(8,1);
+      lcd.print("Ohm");
       break;
   }
 }
